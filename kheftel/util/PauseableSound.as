@@ -8,7 +8,8 @@ package kheftel.util
 	import flash.system.Capabilities;
 
 	/**
-	 * Auto-pauses self on Android when app loses focus.
+	 * Auto-pauses self on Android when app loses focus.  Allows sound to be paused and resumed at the same place.  
+	 * Only allows one instance of sound to play at a time.
 	 */
 	public class PauseableSound
 	{
@@ -19,6 +20,10 @@ package kheftel.util
 		private var _paused:Boolean;
 		private var _loop:Boolean;
 		
+		/**
+		 * creates a new PauseableSound
+		 * @param s the flash sound to encapsulate.
+		 */
 		public function PauseableSound(s:Sound)
 		{
 			if(s == null) throw new ArgumentError('sound cannot be null');
@@ -28,6 +33,7 @@ package kheftel.util
 			_transform = new SoundTransform();
 			_paused = false;
 			_loop = false;
+			_channel = null;
 			
 			// auto-pause and resume the sound on Android so sounds don't play in the background after app loses focus
 			if(Capabilities.manufacturer.indexOf("Android") != -1)
@@ -41,12 +47,18 @@ package kheftel.util
 		{
 			return _paused;
 		}
+		
+		public function get playing():Boolean
+		{
+			return _channel != null;
+		}
 
 		/**
 		 * must be called when you're done with the sound to dispose resources
 		 */
 		public function dispose():void
 		{
+			stop();
 			if(Capabilities.manufacturer.indexOf("Android") != -1)
 			{
 				NativeApplication.nativeApplication.removeEventListener(flash.events.Event.ACTIVATE, onActivate);
@@ -92,6 +104,13 @@ package kheftel.util
 			}
 		}
 		
+		/**
+		 * plays a sound
+		 * @param volume the volume to play the sound at
+		 * @param loop whether to loop the sound continuously
+		 * @param pan the panning to apply to the sound
+		 * @param startTime offset in milliseconds from the start of the sound to start playing at
+		 */
 		public function play(volume:Number = 1, loop:Boolean = false, pan:Number = 0, startTime:Number = 0):void
 		{
 			// only allow one instance of the sound to play at a time
@@ -121,7 +140,7 @@ package kheftel.util
 			_channel = null;
 		}
 		
-		protected function onActivate(e:*):void
+		private function onActivate(e:*):void
 		{
 			if(_paused)
 			{
@@ -130,7 +149,7 @@ package kheftel.util
 			}
 		}
 
-		protected function onDeactivate(e:*):void
+		private function onDeactivate(e:*):void
 		{
 			if(!_paused)
 				pause();
