@@ -13,21 +13,25 @@ package kheftel.util
 	 */
 	public class PauseableSound
 	{
+		private static const NAME:String = 'PauseableSound';
+		
 		private var _sound:Sound;
 		private var _channel:SoundChannel;
 		private var _position:Number;
 		private var _transform:SoundTransform;
 		private var _paused:Boolean;
 		private var _loop:Boolean;
+		private var _verbose:Boolean;
 		
 		/**
 		 * creates a new PauseableSound
 		 * @param s the flash sound to encapsulate.
 		 */
-		public function PauseableSound(s:Sound)
+		public function PauseableSound(s:Sound, verbose:Boolean = true)
 		{
 			if(s == null) throw new ArgumentError('sound cannot be null');
 			
+			_verbose = verbose;
 			_sound = s;
 			_position = 0;
 			_transform = new SoundTransform();
@@ -41,6 +45,12 @@ package kheftel.util
 				NativeApplication.nativeApplication.addEventListener(flash.events.Event.ACTIVATE, onActivate, false, 0, true);
 				NativeApplication.nativeApplication.addEventListener(flash.events.Event.DEACTIVATE, onDeactivate, false, 0, true);
 			}
+		}
+		
+		private function log(msg:String):void
+		{
+			if(_verbose)
+				trace('[' + NAME + ']: ' + msg);
 		}
 		
 		public function get paused():Boolean
@@ -58,6 +68,8 @@ package kheftel.util
 		 */
 		public function dispose():void
 		{
+			log('dispose');
+			
 			stop();
 			if(Capabilities.manufacturer.indexOf("Android") != -1)
 			{
@@ -71,8 +83,10 @@ package kheftel.util
 		 */
 		public function pause():void
 		{
+			log('pause');
 			if(_channel)
 			{
+				log('channel was non-null');
 				_position = _channel.position;
 				_channel.stop();
 				_channel = null;
@@ -87,8 +101,11 @@ package kheftel.util
 		{
 			if(!_paused) return;
 			
+			log('resume');
+			
 			_channel = _sound.play(_position, _loop ? int.MAX_VALUE : 0, _transform);
 			_channel.addEventListener(flash.events.Event.SOUND_COMPLETE, onComplete, false, 0, true);
+			_paused = false;
 		}
 		
 		/**
@@ -96,8 +113,10 @@ package kheftel.util
 		 */
 		public function stop():void
 		{
+			log('stop');
 			if(_channel)
 			{
+				log('channel was non-null');
 				_channel.stop();
 				_position = 0;
 				_channel = null;
@@ -113,9 +132,12 @@ package kheftel.util
 		 */
 		public function play(volume:Number = 1, loop:Boolean = false, pan:Number = 0, startTime:Number = 0):void
 		{
+			log('play');
+			
 			// only allow one instance of the sound to play at a time
 			if(_channel)
 			{
+				log('channel was non-null');
 				_channel.stop();
 				_channel = null;
 				_position = 0;
@@ -132,7 +154,11 @@ package kheftel.util
 		
 		private function onComplete(e:*):void
 		{
+			log('onComplete');
+			
 			if(!_channel) return;
+			
+			log('channel was non-null');
 			
 			_channel.removeEventListener(flash.events.Event.SOUND_COMPLETE, onComplete);
 			_paused = false;
@@ -142,17 +168,15 @@ package kheftel.util
 		
 		private function onActivate(e:*):void
 		{
-			if(_paused)
-			{
-				// restart the sound where we left off
-				resume();
-			}
+			log('onActivate');
+			// restart the sound where we left off
+			resume();
 		}
 
 		private function onDeactivate(e:*):void
 		{
-			if(!_paused)
-				pause();
+			log('onDeactivate');
+			pause();
 		}
 	}
 }
